@@ -1,7 +1,9 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import "./style.css";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { useForm } from "react-hook-form";
+import { send } from "emailjs-com";
 
 export const Home = () => {
   const seatArrangements = {
@@ -24,6 +26,8 @@ export const Home = () => {
   const [available, setAvaiable] = useState(80);
   const [useLayout, setUseLayout] = useState("Yes");
   const [seatArray, setSeatArray] = useState([1]);
+  const [completed, setCompleted] = useState(false);
+  const [formData, setFormData] = useState(null);
 
   const handleUseLayout = (event) => {
     if (event.target.value === "Yes") {
@@ -33,9 +37,7 @@ export const Home = () => {
     }
   };
 
-  const handleSeatToBookChangeEvent = (event: {
-    target: { value: string };
-  }) => {
+  const handleSeatToBookChangeEvent = (event) => {
     const selectedSeats = parseInt(event.target.value, 10);
     setSeatToBook(selectedSeats);
     let arr = [];
@@ -110,6 +112,32 @@ export const Home = () => {
     }
   };
 
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm();
+
+  const onSubmit = (data) => {
+    setFormData(data);
+    setCompleted(true);
+  };
+
+  const ctaClicked = async () => {
+    if (!completed) {
+      toast.warn("Please fill all the details of traveller before proceeding.");
+    } else {
+      const response = await send("", "", formData, "");
+      if (response) {
+        toast.success(
+          "An email including your booking data has been sent successfully"
+        );
+      } else {
+        toast.error("Something went wrong!");
+      }
+    }
+  };
+
   return (
     <div className="container book-my-seat">
       <header>Book Train Seat</header>
@@ -154,16 +182,46 @@ export const Home = () => {
                 </div>
               )}
               <div className="form">
-                <form className="in-form">
+                <form
+                  className="in-form"
+                  id="passenger-details"
+                  onSubmit={handleSubmit(onSubmit)}
+                >
+                  <div className="form-group col-md-6">
+                    <input
+                      type="text"
+                      name="email"
+                      placeholder="Email"
+                      {...register("email", {
+                        required: "Email is required",
+                        pattern: {
+                          value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                          message: "Invalid email address",
+                        },
+                      })}
+                    />
+                  </div>
                   {seatArray.map((item, index) => (
                     <div className="row">
                       <div className="form-group col-md-3">
                         <label htmlFor="name">Name:</label>
-                        <input type="text" />
+                        <input
+                          name={`name_${index}`}
+                          type="text"
+                          {...register(`name_${index}`, {
+                            required: "Name is required!",
+                          })}
+                        />
                       </div>
                       <div className="form-group col-md-2">
                         <label htmlFor="name">Age: </label>
-                        <input type="text" />
+                        <input
+                          type="text"
+                          name={`age_${index}`}
+                          {...register(`agae_${index}`, {
+                            required: "Age is required!",
+                          })}
+                        />
                       </div>
                     </div>
                   ))}
@@ -200,7 +258,9 @@ export const Home = () => {
               ))}
             </table>
             <a>
-              <button className="cta proceed">Finish</button>
+              <button className="cta proceed" onClick={ctaClicked}>
+                Finish
+              </button>
             </a>
           </div>
         </div>
